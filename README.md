@@ -15,6 +15,8 @@ On a i7-9700K CPU @ 3.60GHz, 4 bytes (32 bits) takes about 3.4 seconds, 5 bytes 
 
 ### Bruteforcing Printable Character set
 
+### Bruteforcing UTF-16LE Character set
+
 ### Thanks
 
 Thanks to [sebastien-riou/aes-brute-force](https://github.com/sebastien-riou/aes-brute-force) and [Botan]() for the open source projects that I used in making this project.
