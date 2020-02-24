@@ -7,17 +7,14 @@
 
 #include <stdint.h>
 #include <wmmintrin.h>
+#include <cstring>
 
 
-template<typename T>
-inline T load_le(const uint8_t in[], size_t off)
-	{
-	in += off * sizeof(T);
-	T out = 0;
-	for(size_t i = 0; i != sizeof(T); ++i)
-		out = (out << 8) | in[sizeof(T)-1-i];
-	return out;
-	}
+inline void load_le(const uint32_t* output[], const uint8_t* input[], size_t count)
+   {
+	//Not dealing with endianness right now
+	std::memcpy(output, reinterpret_cast<uint32_t*>(input), count);
+}
 
 
 __m128i aes_128_key_expansion(__m128i key, __m128i key_with_rcon)
@@ -27,10 +24,10 @@ __m128i aes_128_key_expansion(__m128i key, __m128i key_with_rcon)
 	key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
 	key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
 	return _mm_xor_si128(key, key_with_rcon);
-	}
+}
 
 void aes_192_key_expansion(__m128i* K1, __m128i* K2, __m128i key2_with_rcon,
-									uint32_t out[], bool last)
+									uint8_t out[], bool last)
 {
 	__m128i key1 = *K1;
 	__m128i key2 = *K2;
@@ -53,7 +50,7 @@ void aes_192_key_expansion(__m128i* K1, __m128i* K2, __m128i key2_with_rcon,
 	*K2 = key2;
 	out[4] = _mm_cvtsi128_si32(key2);
 	out[5] = _mm_cvtsi128_si32(_mm_srli_si128(key2, 4));
-	}
+}
 
 /*
 * The second half of the AES-256 key expansion (other half same as AES-128)
@@ -67,7 +64,7 @@ __m128i aes_256_key_expansion(__m128i key, __m128i key2)
 	key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
 	key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
 	return _mm_xor_si128(key, key_with_rcon);
-	}
+}
 
 #define AES_ENC_4_ROUNDS(K)                     \
 	do                                           \
@@ -108,12 +105,12 @@ __m128i aes_256_key_expansion(__m128i key, __m128i key2)
 /*
 * AES-128 Encryption
 */
-void AES_128::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_128_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* encryption_keys[44])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_EK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(encryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -127,8 +124,7 @@ void AES_128::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K9  = _mm_loadu_si128(key_mm + 9);
 	const __m128i K10 = _mm_loadu_si128(key_mm + 10);
 
-	while(blocks >= 4)
-{
+	while(blocks >= 4){
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -158,10 +154,9 @@ void AES_128::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
-	for(size_t i = 0; i != blocks; ++i)
-{
+	for(size_t i = 0; i != blocks; ++i)	{
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -177,19 +172,19 @@ void AES_128::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesenc_si128(B, K9);
 		B = _mm_aesenclast_si128(B, K10);
 
-		_mm_storeu_si128(out_mm + i, B);
-		}
+		_mm_storeu_si128(out_mm + i, B);	
 	}
+}
 
 /*
 * AES-128 Decryption
 */
-void AES_128::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_128_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* decryption_keys[44])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_DK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(decryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -203,8 +198,7 @@ void AES_128::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K9  = _mm_loadu_si128(key_mm + 9);
 	const __m128i K10 = _mm_loadu_si128(key_mm + 10);
 
-	while(blocks >= 4)
-{
+	while(blocks >= 4){
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -234,10 +228,9 @@ void AES_128::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
-	for(size_t i = 0; i != blocks; ++i)
-{
+	for(size_t i = 0; i != blocks; ++i){
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -254,17 +247,14 @@ void AES_128::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesdeclast_si128(B, K10);
 
 		_mm_storeu_si128(out_mm + i, B);
-		}
 	}
+}
 
 /*
 * AES-128 Key Schedule
 */
-void AES_128::aesni_key_schedule(const uint8_t key[], size_t)
+void aesni_128_key_schedule(const uint8_t key[], uint32_t* encryption_keys[44], uint32_t* decryption_keys[44])
 {
-	m_EK.resize(44);
-	m_DK.resize(44);
-
 	#define AES_128_key_exp(K, RCON) \
 		aes_128_key_expansion(K, _mm_aeskeygenassist_si128(K, RCON))
 
@@ -280,7 +270,7 @@ void AES_128::aesni_key_schedule(const uint8_t key[], size_t)
 	const __m128i K9  = AES_128_key_exp(K8, 0x1B);
 	const __m128i K10 = AES_128_key_exp(K9, 0x36);
 
-	__m128i* EK_mm = reinterpret_cast<__m128i*>(m_EK.data());
+	__m128i* EK_mm = reinterpret_cast<__m128i*>(encryption_keys);
 	_mm_storeu_si128(EK_mm     , K0);
 	_mm_storeu_si128(EK_mm +  1, K1);
 	_mm_storeu_si128(EK_mm +  2, K2);
@@ -295,7 +285,7 @@ void AES_128::aesni_key_schedule(const uint8_t key[], size_t)
 
 	// Now generate decryption keys
 
-	__m128i* DK_mm = reinterpret_cast<__m128i*>(m_DK.data());
+	__m128i* DK_mm = reinterpret_cast<__m128i*>(decryption_keys);
 	_mm_storeu_si128(DK_mm     , K10);
 	_mm_storeu_si128(DK_mm +  1, _mm_aesimc_si128(K9));
 	_mm_storeu_si128(DK_mm +  2, _mm_aesimc_si128(K8));
@@ -307,17 +297,17 @@ void AES_128::aesni_key_schedule(const uint8_t key[], size_t)
 	_mm_storeu_si128(DK_mm +  8, _mm_aesimc_si128(K2));
 	_mm_storeu_si128(DK_mm +  9, _mm_aesimc_si128(K1));
 	_mm_storeu_si128(DK_mm + 10, K0);
-	}
+}
 
 /*
 * AES-192 Encryption
 */
-void AES_192::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_192_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* encryption_keys[52]) 
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_EK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(encryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -334,7 +324,7 @@ void AES_192::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K12 = _mm_loadu_si128(key_mm + 12);
 
 	while(blocks >= 4)
-{
+	{
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -366,10 +356,10 @@ void AES_192::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
 	for(size_t i = 0; i != blocks; ++i)
-{
+	{
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -388,18 +378,18 @@ void AES_192::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesenclast_si128(B, K12);
 
 		_mm_storeu_si128(out_mm + i, B);
-		}
 	}
+}
 
 /*
 * AES-192 Decryption
 */
-void AES_192::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_192_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* decryption_keys[52])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_DK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(decryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -416,7 +406,7 @@ void AES_192::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K12 = _mm_loadu_si128(key_mm + 12);
 
 	while(blocks >= 4)
-{
+	{
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -448,10 +438,10 @@ void AES_192::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
 	for(size_t i = 0; i != blocks; ++i)
-{
+	{
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -470,27 +460,24 @@ void AES_192::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesdeclast_si128(B, K12);
 
 		_mm_storeu_si128(out_mm + i, B);
-		}
 	}
+}
 
 /*
 * AES-192 Key Schedule
 */
-void AES_192::aesni_key_schedule(const uint8_t key[], size_t)
+void aesni_192_key_schedule(const uint8_t input_key[], uint32_t const* encryption_keys[52], uint32_t const* decryption_keys[52])
 {
-	m_EK.resize(52);
-	m_DK.resize(52);
-
-	__m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key));
-	__m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key + 8));
+	__m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));
+	__m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key + 8));
 	K1 = _mm_srli_si128(K1, 8);
 
-	load_le(m_EK.data(), key, 6);
+	load_le(encryption_keys, &input_key, 6);
 
 	#define AES_192_key_exp(RCON, EK_OFF)                         \
 	  aes_192_key_expansion(&K0, &K1,                             \
 									_mm_aeskeygenassist_si128(K1, RCON),  \
-									&m_EK[EK_OFF], EK_OFF == 48)
+									(uint8_t*)encryption_keys[EK_OFF], EK_OFF == 48)
 
 	AES_192_key_exp(0x01, 6);
 	AES_192_key_exp(0x02, 12);
@@ -504,9 +491,9 @@ void AES_192::aesni_key_schedule(const uint8_t key[], size_t)
 	#undef AES_192_key_exp
 
 	// Now generate decryption keys
-	const __m128i* EK_mm = reinterpret_cast<const __m128i*>(m_EK.data());
+	const __m128i* EK_mm = reinterpret_cast<const __m128i*>(encryption_keys);
 
-	__m128i* DK_mm = reinterpret_cast<__m128i*>(m_DK.data());
+	__m128i* DK_mm = reinterpret_cast<__m128i*>(decryption_keys);
 	_mm_storeu_si128(DK_mm     , _mm_loadu_si128(EK_mm + 12));
 	_mm_storeu_si128(DK_mm +  1, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 11)));
 	_mm_storeu_si128(DK_mm +  2, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 10)));
@@ -520,17 +507,17 @@ void AES_192::aesni_key_schedule(const uint8_t key[], size_t)
 	_mm_storeu_si128(DK_mm + 10, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 2)));
 	_mm_storeu_si128(DK_mm + 11, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 1)));
 	_mm_storeu_si128(DK_mm + 12, _mm_loadu_si128(EK_mm + 0));
-	}
+}
 
 /*
 * AES-256 Encryption
 */
-void AES_256::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_256_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t const* encryption_keys[60])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_EK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(encryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -549,7 +536,7 @@ void AES_256::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K14 = _mm_loadu_si128(key_mm + 14);
 
 	while(blocks >= 4)
-{
+	{
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -583,10 +570,10 @@ void AES_256::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
 	for(size_t i = 0; i != blocks; ++i)
-{
+	{
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -607,18 +594,18 @@ void AES_256::aesni_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesenclast_si128(B, K14);
 
 		_mm_storeu_si128(out_mm + i, B);
-		}
 	}
+}
 
 /*
 * AES-256 Decryption
 */
-void AES_256::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) const
+void aesni_256_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t const* decryption_keys[60])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
 
-	const __m128i* key_mm = reinterpret_cast<const __m128i*>(m_DK.data());
+	const __m128i* key_mm = reinterpret_cast<const __m128i*>(decryption_keys);
 
 	const __m128i K0  = _mm_loadu_si128(key_mm);
 	const __m128i K1  = _mm_loadu_si128(key_mm + 1);
@@ -637,7 +624,7 @@ void AES_256::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 	const __m128i K14 = _mm_loadu_si128(key_mm + 14);
 
 	while(blocks >= 4)
-{
+	{
 		__m128i B0 = _mm_loadu_si128(in_mm + 0);
 		__m128i B1 = _mm_loadu_si128(in_mm + 1);
 		__m128i B2 = _mm_loadu_si128(in_mm + 2);
@@ -671,10 +658,10 @@ void AES_256::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		blocks -= 4;
 		in_mm += 4;
 		out_mm += 4;
-		}
+	}
 
 	for(size_t i = 0; i != blocks; ++i)
-{
+	{
 		__m128i B = _mm_loadu_si128(in_mm + i);
 
 		B = _mm_xor_si128(B, K0);
@@ -695,19 +682,17 @@ void AES_256::aesni_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks) 
 		B = _mm_aesdeclast_si128(B, K14);
 
 		_mm_storeu_si128(out_mm + i, B);
-		}
 	}
+}
 
 /*
 * AES-256 Key Schedule
 */
-void AES_256::aesni_key_schedule(const uint8_t key[], size_t)
+void aesni_256_key_schedule(const uint8_t input_key[], uint32_t const* encryption_keys[60], uint32_t const* decryption_keys[60])
 {
-	m_EK.resize(60);
-	m_DK.resize(60);
 
-	const __m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key));
-	const __m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key + 16));
+	const __m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));
+	const __m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key + 16));
 
 	const __m128i K2 = aes_128_key_expansion(K0, _mm_aeskeygenassist_si128(K1, 0x01));
 	const __m128i K3 = aes_256_key_expansion(K1, K2);
@@ -729,7 +714,7 @@ void AES_256::aesni_key_schedule(const uint8_t key[], size_t)
 
 	const __m128i K14 = aes_128_key_expansion(K12, _mm_aeskeygenassist_si128(K13, 0x40));
 
-	__m128i* EK_mm = reinterpret_cast<__m128i*>(m_EK.data());
+	__m128i* EK_mm = reinterpret_cast<__m128i*>(encryption_keys);
 	_mm_storeu_si128(EK_mm     , K0);
 	_mm_storeu_si128(EK_mm +  1, K1);
 	_mm_storeu_si128(EK_mm +  2, K2);
@@ -747,7 +732,7 @@ void AES_256::aesni_key_schedule(const uint8_t key[], size_t)
 	_mm_storeu_si128(EK_mm + 14, K14);
 
 	// Now generate decryption keys
-	__m128i* DK_mm = reinterpret_cast<__m128i*>(m_DK.data());
+	__m128i* DK_mm = reinterpret_cast<__m128i*>(decryption_keys);
 	_mm_storeu_si128(DK_mm     , K14);
 	_mm_storeu_si128(DK_mm +  1, _mm_aesimc_si128(K13));
 	_mm_storeu_si128(DK_mm +  2, _mm_aesimc_si128(K12));
@@ -763,7 +748,7 @@ void AES_256::aesni_key_schedule(const uint8_t key[], size_t)
 	_mm_storeu_si128(DK_mm + 12, _mm_aesimc_si128(K2));
 	_mm_storeu_si128(DK_mm + 13, _mm_aesimc_si128(K1));
 	_mm_storeu_si128(DK_mm + 14, K0);
-	}
+}
 
 #undef AES_ENC_4_ROUNDS
 #undef AES_ENC_4_LAST_ROUNDS
