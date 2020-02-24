@@ -5,7 +5,9 @@ Sometimes side channel attacks recover most key bytes but not all. This project 
 The AES-NI code has been taken from boton with some modifications.
 
 ## Measured performances
-On a i7-9700K CPU @ 3.60GHz, 4 bytes (32 bits) takes about 3.4 seconds, 5 bytes (40 bits) takes about 15 mins. This is with a 128 bit key.
+On a i7-9700K CPU @ 3.60GHz with a 128 bit key.
+- 4 bytes (32 bits) takes about 3.4 seconds
+- 5 bytes (40 bits) takes about 15 mins.
 
 ## Examples
 
