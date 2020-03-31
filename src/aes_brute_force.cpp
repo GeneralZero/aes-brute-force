@@ -1,4 +1,5 @@
 #include "../include/aes_brute_force.h"
+#include "../include/aes_brute_force_job.h"
 #include "../include/aes_ni_botan.h"
 #include <iostream>
 #include <assert.h>
@@ -18,7 +19,7 @@ void aes_brute_force::init_debug_output(){
 	std::cout << "\tcipher:       " << cipher.data() << std::endl;
 }
 
-void aes_brute_force::setup_threads(uint threads_count){
+void aes_brute_force::setup_threads(unsigned int threads_count){
 	this->n_threads = threads_count; 
 
 	//Search for the largest bit and set tne number of bits to search through
@@ -37,7 +38,7 @@ void aes_brute_force::setup_threads(uint threads_count){
 
 	//Generate Job Mask
 	std::vector<uint8_t> job_mask(key_mask);
-	for (uint i = 0; i < key_mask.size(); i++){
+	for (unsigned int i = 0; i < key_mask.size(); i++){
 		if (largest_byte_idx == i){
 			key_mask.at(i) = 0x00;
 		}
@@ -75,18 +76,10 @@ void aes_brute_force::setup_threads(uint threads_count){
 	std::sort(job_keys.begin(), job_keys.end());
 	job_keys.erase(std::unique( job_keys.begin(), job_keys.end()), job_keys.end());
 
-	
-
 	//Use job keys to generate jobs for the specific number of threads
-	for(unsigned int thread_index=0; thread_index < n_threads; thread_index++){
-		if(continuous_range){
 
-			jobs.at(thread_index) = new aes_brute_force_job(jobs_key_mask);
-		}
-		else{
-
-			jobs.at(thread_index) = new aes_brute_force_job(jobs_key_mask, aes_brute_force::valid_bytes, byte_range);
-		}
+	for (unsigned int job_index = 0; job_index < job_keys.size(); job_index++){
+		jobs.at(job_index) = new aes_brute_force_job(jobs_key_mask, job_keys[job_index], plain, cipher);
 	}
 
 	// Each Job will use the job mask and set the min byte for the keys
@@ -95,17 +88,23 @@ void aes_brute_force::setup_threads(uint threads_count){
 }
 
 void aes_brute_force::start_threads(){
-	for(unsigned int thread_index=0; thread_index < n_threads; thread_index++){
-		threads.at(thread_index) = new std::thread(&aes_brute_force::compute, jobs.at(thread_index));
+	for(unsigned int job_index=0; job_index < jobs.size(); job_index++){
+		if(continuous_range){
+			threads.at(job_index % n_threads) = new std::async(&aes_brute_force_job::search_continuous, jobs.at(job_index), byte_min, byte_max);
+		}
+		else{
+			threads.at(job_index % n_threads) = new std::async(&aes_brute_force_job::search, jobs.at(job_index), byte_min, character_lookup_table);
+		}
+		
 	}
 }
 
 //Convert Key Mask to the number of bits and the location of them
-uint aes_brute_force::mask_to_offsets(){
+unsigned int aes_brute_force::mask_to_offsets(){
 	int largest_byte_idx=-1;
 	int largest_byte=0;
 
-	for(uint i=0; i < key_mask.size(); i++){
+	for(unsigned int i=0; i < key_mask.size(); i++){
 		//Skip Byte if 00
 		if(key_mask[i] == 0x00){
 			continue;
@@ -117,7 +116,7 @@ uint aes_brute_force::mask_to_offsets(){
 				number_of_bits_to_find += 8;
 			}
 			else{
-				uint bits_set = std::bitset<8>(key_mask[i]).count();
+				unsigned int bits_set = std::bitset<8>(key_mask[i]).count();
 				if(largest_byte < bits_set){
 					largest_byte_idx = i;
 				}
@@ -129,76 +128,6 @@ uint aes_brute_force::mask_to_offsets(){
 	}
 
 	return largest_byte_idx;
-}
-
-void aes_brute_force::search_continuous(unsigned int offsets[16], unsigned int n_offsets, uint8_t key[16], uint64_t &loop_cnt){
-	uint8_t r[16];
-	uint64_t n_loops = 1;
-	uint64_t byte_range = byte_max+1;
-	byte_range -= byte_min;
-	n_loops = 1;
-	for(unsigned int i=0; i < n_offsets; i++){
-		n_loops *= byte_range;
-	}
-	//printf("n_loops = %lu\n",n_loops);
-	this->key_found = false;
-	if((this->byte_min == 0x00) && (this->byte_max == 0xFF)){
-		loop_cnt=0;
-		uint8_t*loop_cnt8 = (uint8_t*)&loop_cnt;
-		for(unsigned int o=0;o<n_offsets;o++){
-			loop_cnt8[o] = key[offsets[o]];
-		}
-		for(; loop_cnt < n_loops; loop_cnt++){
-			uint64_t cnt = loop_cnt;
-			__m128i key_schedule[11];
-			for(unsigned int o = 0; o < n_offsets; o++){
-				key[offsets[o]] = (uint8_t)cnt;
-				cnt = cnt >> 8;
-			}
-			aes128_load_key_enc_only(key, key_schedule);
-			aes128_enc(key_schedule, this->plain, r);
-
-			if(0==std::memcpy(r, this->cipher.data(), 16)){
-				this->key_found=true;
-				this->done=true;
-				return;
-			}
-		}
-	}else{
-		uint8_t cnt8[16];
-
-
-		std::memset(cnt8, this->byte_min, sizeof(cnt8));
-
-		for(unsigned int o = 0; o < n_offsets; o++){
-			uint8_t b = key[offsets[o]];
-			if(b > this->byte_min){
-				cnt8[o] = b;
-			}
-		}
-		for(loop_cnt = 0; loop_cnt < n_loops; loop_cnt++){
-			__m128i key_schedule[11];
-			for(unsigned int o=0; o < n_offsets; o++){
-				key[offsets[o]] = cnt8[o];
-			}
-			aes128_load_key_enc_only(key, this->key_schedule);
-			aes128_enc(this->key_schedule, this->plain, r);
-
-			if(0==std::memcpy(r, this->cipher.data(), 16)){
-				this->key_found=true;
-				this->done=true;
-				return;
-			}
-			unsigned int b=0;
-			for(b=0;b<16;b++){
-				if(cnt8[b]!=byte_max) break;
-			}
-			for(unsigned int i=0;i<b;i++){
-				cnt8[i] = byte_min;
-			}
-			cnt8[b]++;
-		}
-	}
 }
 
 void aes_brute_force::set_character_range(std::vector<uint8_t> valid_bytes){
@@ -236,71 +165,6 @@ void aes_brute_force::set_character_range(uint8_t min_byte, uint8_t max_byte){
 	this->number_of_characters = max_byte - min_byte;
 
 	this->continuous_range = true;
-}
-
-
-void aes_brute_force::search( unsigned int offsets[16], unsigned int n_offsets, uint8_t key[16], uint8_t*valid_bytes, uint64_t byte_range, uint64_t &loop_cnt){
-	uint8_t r[16];
-	uint64_t n_loops = 1;
-	n_loops = 1;
-	for(unsigned int i = 0; i < n_offsets; i++){
-		n_loops *= byte_range;
-	}
-	//printf("n_loops = %lu\n",n_loops);
-	this->key_found=false;
-
-	uint8_t cnt8[16];
-	std::memset(cnt8, this->byte_min, sizeof(cnt8));
-	for(unsigned int o = 0; o < n_offsets; o++){
-		uint8_t b=key[offsets[o]];
-		if(b > this->byte_min){
-			cnt8[o] = b;
-		}
-	}
-	for(loop_cnt=0;loop_cnt<n_loops;loop_cnt++){
-		__m128i key_schedule[11];
-		for(unsigned int o = 0; o < n_offsets; o++){
-			key[offsets[o]] = cnt8[o];
-		}
-		aes128_load_key_enc_only(key, key_schedule);
-		aes128_enc(key_schedule, this->plain, r);
-
-		if(0==std::memcpy(r, this->cipher.data(), 16)){
-			this->key_found = true;
-			this->done = true;
-			return;
-		}
-		unsigned int b=0;
-		for(b=0;b<16;b++){
-			if(cnt8[b] != this->byte_max) break;
-		}
-		for(unsigned int i=0;i<b;i++){
-			cnt8[i] = this->byte_min;
-		}
-		cnt8[b] = valid_bytes[cnt8[b]];
-	}
-}
-
-
-void aes_brute_force::compute() {
-	loop_cnt=0;
-	for(auto k = keys.begin(); k != keys.end(); ++k){
-		uint64_t cnt;
-		if(this->continuous_range) {
-			search_continuous(offsets, n_offsets, k->bytes, cnt);
-		}
-		else {
-			search(offsets, n_offsets, k->bytes, character_lookup_table, byte_range, cnt);
-		}
-		loop_cnt += cnt;
-		if(this->key_found){
-			std::memcpy(correct_key, k->bytes, 16);
-			return;
-		}
-		if(this->done){ //used for multithread operations
-			return;
-		}
-	}
 }
 
 

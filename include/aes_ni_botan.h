@@ -1,4 +1,4 @@
-#ifndef AES_NI_BOTAN
+#ifndef AES_NI_BOTAN 
 #define AES_NI_BOTAN 
 
 void aesni_128_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* encryption_keys[44]);

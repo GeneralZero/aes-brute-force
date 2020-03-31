@@ -3,7 +3,7 @@
 #include <cstring>
 #include <inttypes.h>
 #include <wmmintrin.h> 
-#include <thread>
+#include <future>
 
 class aes_brute_force{
 	public:
@@ -14,9 +14,9 @@ class aes_brute_force{
 		static bool continuous_range;
 
 		//Mask Information
-		std::vector<uint> mask_indexes;
+		std::vector<unsigned int> mask_indexes;
 		std::vector<uint8_t> jobs_key_mask;
-		uint number_of_bits_to_find = 0;
+		unsigned int number_of_bits_to_find = 0;
 
 		//Debug Information
 		uint64_t loop_cnt;
@@ -40,7 +40,7 @@ class aes_brute_force{
 		
 
 		//Threads and jobs
-		uint n_threads;
+		unsigned int n_threads;
 		std::vector<std::thread *> threads;
 		std::vector<aes_brute_force *> jobs;
 
@@ -69,7 +69,7 @@ class aes_brute_force{
 		void set_character_range(std::vector<uint8_t> valid_bytes);
 		void set_character_range(uint8_t min_byte, uint8_t max_byte);
 		unsigned int mask_to_offsets();
-		void setup_threads(uint n_threads);
+		void setup_threads(unsigned int n_threads);
 
 		//Initalization
 		aes_brute_force(std::vector<uint8_t> key_mask, std::vector<uint8_t> key_input, std::vector<uint8_t> plain, 

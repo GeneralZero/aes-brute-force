@@ -219,7 +219,7 @@ int main (int argc, char* argv[]){
 	for(unsigned int thread_index=0; thread_index < n_threads; thread_index++){
 
 		//Synchronize threads 
-		threads.at(thread_index)->join();
+		uint64_t test threads.at(thread_index).get();
 		
 		//Check if Key was found
 		if(jobs.at(thread_index)->key_found){
