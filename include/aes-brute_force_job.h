@@ -17,6 +17,8 @@ class aes_brute_force_job{
 		std::vector<uint8_t> plain;
 		std::vector<uint8_t> cipher;
 
+		std::vector<std::vector<uint8_t>> test_keys;
+
 		uint64_t loop_cnt;
 
 		//Character Info
@@ -27,8 +29,11 @@ class aes_brute_force_job{
 		uint8_t byte_max = 0xFF;		
 
 		//Functions
-		void search_continuous(uint8_t byte_min, uint8_t byte_max, uint64_t &loop_cnt);
-		void search(uint8_t byte_min, uint8_t* character_lookup_table, uint64_t &loop_cnt);
+		uint64_t search_continuous(uint8_t byte_min, uint8_t byte_max);
+		uint64_t search(uint8_t byte_min, uint8_t* character_lookup_table);
+
+		void recursive_keys(std::string bit_key_mask, unsigned int index, std::string data, std::vector<uint8_t> init_key);
+		std::string toBinary(std::vector<uint8_t> in);
 
 		//Initalization
 		aes_brute_force_job(std::vector<uint8_t> key_mask, std::vector<uint8_t> key_input, std::vector<uint8_t> plain, std::vector<uint8_t> cipher);
