@@ -40,4 +40,4 @@ On a i7-9700K CPU @ 3.60GHz with a 128 bit key.
 
 ### Thanks
 
-Thanks to [sebastien-riou/aes-brute-force](https://github.com/sebastien-riou/aes-brute-force) and [Botan]() for the open source projects that I used in making this project.
+Thanks to [sebastien-riou/aes-brute-force](https://github.com/sebastien-riou/aes-brute-force) and [Botan]() open source projects that I used for the insperation, sanity checking and code.
