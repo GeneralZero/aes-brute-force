@@ -11,38 +11,6 @@
 #include <regex>
 #include <assert.h>
 
-//Create AES Brute Force Object with key inputs and number of threds
-	//Run AES NI tests
-	//Parse Argv inputs and print info
-	//
-
-//Set Character List with setting up thread objects
-	//Set up character list object
-	//Check Character list object
-	//Set Up subkeys from Keymask
-	//
-
-//Run threads
-
-//Wait for termination
-
-//Print output
-
-
-//Print Bytes in hex
-int print_bytes(std::vector<uint8_t>& key){
-	uint i = 0;
-	for (; i < key.size(); ++i){
-		if(i != 0 && i % 8 == 0){
-			std::cout << "_";
-		}
-		printf("%02X", key.at(i));
-	}
-	std::cout << std::endl;
-
-	return i;
-}
-
 //Convert Single Hex to uint8_t
 uint8_t hex_to_int(std::string hex_string){
 	std::istringstream converter(hex_string);
@@ -75,11 +43,6 @@ void usage(char* program_name){
 	exit(-1);
 }
 
-//Convert Hexstring of the KeyMask to bytes
-void set_arguments(char* argv[]){
-
-}
-
 //Get Number of Threads that can be run on the CPU
 unsigned int get_thread_count(unsigned int n){
 	unsigned int n_threads = std::thread::hardware_concurrency();
@@ -103,6 +66,7 @@ int main (int argc, char* argv[]){
 	unsigned int n_threads;
 	std::vector<uint8_t> key_mask;
 	std::vector<uint8_t> key_input;
+	std::vector<uint8_t> final_key;
 	std::vector<uint8_t> plain;
 	std::vector<uint8_t> cipher;
 	std::vector<uint8_t> valid_bytes;
@@ -124,8 +88,8 @@ int main (int argc, char* argv[]){
 	extract_chars_from_hex(argv[1], key_mask);
 
 	//Check Input
-	if(key_mask.size() == 16 || key_mask.size() == 24 || key_mask.size() == 32 ){
-		std::cerr << "Key Mask does not have the corret number of bytes set. " << std::endl;
+	if(key_mask.size() != 16 && key_mask.size() != 24 && key_mask.size() != 32 ){
+		std::cerr << "Key Mask does not have the corret number of bytes set. " << key_mask.size() << std::endl;
 		usage(argv[0]);
 	}
 
@@ -133,8 +97,8 @@ int main (int argc, char* argv[]){
 	extract_chars_from_hex(argv[2], key_input);
 
 	//Check Input
-	if(key_input.size() != 16 || key_input.size() != 24 || key_input.size() != 32 ){
-		std::cerr << "Key does not have the corret number of bytes set. " << std::endl;
+	if(key_input.size() != 16 && key_input.size() != 24 && key_input.size() != 32 ){
+		std::cerr << "Key does not have the corret number of bytes set. " <<  key_input.size() << std::endl;
 		usage(argv[0]);
 	}
 
@@ -158,9 +122,9 @@ int main (int argc, char* argv[]){
 	}
 
 	//Get Number of Threads that can be run on the CPU
+	//std::cout << "Begin making Bruteforcer" << std::endl;
 	auto bruteforcer = new aes_brute_force(key_mask, key_input, plain, cipher);
-
-	bruteforcer->init_debug_output();
+	//std::cout << "Finished making Bruteforcer" << std::endl;
 
 	//Check to make sure that the AES implimenation works on the CPU
 	bruteforcer->preform_self_tests();
@@ -192,14 +156,13 @@ int main (int argc, char* argv[]){
 			bruteforcer->set_character_range(0x00, 0xFF);	
 		}
 
-		//Debug Information
-		printf("\tbyte_min:     0x%02X\n", bruteforcer->byte_min);
-		printf("\tbyte_max:     0x%02X\n", bruteforcer->byte_max);
-		std::cout << std::endl;
 	}
 
 	//Setup Threads and key jobs
 	bruteforcer->setup_threads(n_threads);
+
+	//Log Information after threads setup
+	bruteforcer->init_debug_output();
 
 	//Log number of bits to Bruteforce
 	std::cout  << std::endl << "Launching " << bruteforcer->number_of_bits_to_find << " bits search" << std::endl;
@@ -219,17 +182,17 @@ int main (int argc, char* argv[]){
 	for(unsigned int thread_index=0; thread_index < n_threads; thread_index++){
 
 		//Synchronize threads 
-		uint64_t test threads.at(thread_index).get();
+		uint64_t test = bruteforcer->threads.at(thread_index).get();
 		
 		//Check if Key was found
-		if(jobs.at(thread_index)->key_found){
+		if(bruteforcer->jobs.at(thread_index)->key_found){
 			thread_found = thread_index;
-			auto winning_thread = jobs.at(thread_index);
-			std::memcpy(aes_brute_force::key_input, winning_thread->correct_key, winning_thread->correct_key.size());
+			auto winning_thread = bruteforcer->jobs.at(thread_index);
+			copy(winning_thread->correct_key.begin(), winning_thread->correct_key.end(), back_inserter(final_key));
 		}
 
 		//Update Count of Attempts
-		loop_cnt+=jobs.at(thread_index)->loop_cnt;
+		loop_cnt += bruteforcer->jobs.at(thread_index)->loop_cnt;
 	}
 
 	//Stop Timer
@@ -239,7 +202,7 @@ int main (int argc, char* argv[]){
 	if(thread_found != -1){
 		std::cout << std::endl << "Thread " << thread_found << " claims to have found the key" << std::endl;
 		std::cout << "\tkey found:    ";
-		print_bytes(aes_brute_force::key_input);
+		print_bytes(final_key);
 	} else {
 		std::cout << std::endl << "No matching key could be found" << std::endl;
 	}	
@@ -261,12 +224,5 @@ int main (int argc, char* argv[]){
 		std::cout << "\t" << key_per_sec << " keys per second" << std::endl;
 	}
 
-	return 0;
-
-	
-
-	//int bit_per_byte = 0;do{bit_per_byte++;}while((1<<bit_per_byte) < byte_range);//round up
-	//printf("bit_per_byte=%u\n",bit_per_byte);
-	//printf("byte_range=%u\n",byte_range);
-	
+	return 0;	
 }

@@ -1,22 +1,36 @@
-#include "../include/aes_brute_force.h"
-#include "../include/aes_brute_force_job.h"
-#include "../include/aes_ni_botan.h"
+#include "aes_brute_force.h"
+#include "aes_brute_force_job.h"
+#include "aes_ni_botan.h"
 #include <iostream>
 #include <assert.h>
 #include <bitset>
 #include <algorithm>
+#include <future>
 
 //Functions
+//Print Bytes in hex
+void print_bytes(std::vector<uint8_t> key){
+	unsigned int i = 0;
+	for (; i < key.size(); ++i){
+		if(i != 0 && i % 8 == 0){
+			std::cout << "_";
+		}
+		printf("%02X", key.at(i));
+	}
+	std::cout << std::endl;
+}
 
 void aes_brute_force::init_debug_output(){
 	//Debug Ouput
 	//std::cout << "INFO: " << n_threads << " concurrent threads supported in hardware." << std::endl << std::endl;
 	std::cout << "Search parameters:" << std::endl;
-	std::cout << "\tn_threads:    " << n_threads << std::endl;
-	std::cout << "\tkey_mask:     " << key_mask.data() << std::endl;
-	std::cout << "\tkey_in:       " << key_input.data() << std::endl;
-	std::cout << "\tplain:        " << plain.data() << std::endl;
-	std::cout << "\tcipher:       " << cipher.data() << std::endl;
+	std::cout << "\tn_threads:    " << this->n_threads << std::endl;
+	std::cout << "\tkey_mask:     "; print_bytes(key_mask);
+	std::cout << "\tkey_in:       "; print_bytes(key_input);
+	std::cout << "\tplain:        "; print_bytes(plain);
+	std::cout << "\tcipher:       "; print_bytes(cipher);
+	printf("\tbyte_min:     0x%02X\n", this->byte_min);
+	printf("\tbyte_max:     0x%02X\n", this->byte_max);
 }
 
 void aes_brute_force::setup_threads(unsigned int threads_count){
@@ -38,11 +52,8 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 
 	//Generate Job Mask
 	std::vector<uint8_t> job_mask(key_mask);
-	for (unsigned int i = 0; i < key_mask.size(); i++){
-		if (largest_byte_idx == i){
-			key_mask.at(i) = 0x00;
-		}
-	}
+	//Set the largest_byte_idx to Zero
+	job_mask[largest_byte_idx] = 0x00;
 
 	//Print info about the Mask Information
 	//printf("\tjobs_key_mask: ");
@@ -54,8 +65,8 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 	if (continuous_range){
 		//Generate Job Keys Baised on Character start for a continious range
 		for (size_t i = 0; i < number_of_characters; i++){
-			//Generate the key from the keymask with the specific character as the unique key
-			auto temp = jobs_key_mask;
+			//Generate the key from the input key and the keymask with the specific character as the unique key
+			std::vector<uint8_t> temp{key_input};
 			temp.at(largest_byte_idx) = (byte_min + i) & replace_key_byte;
 			job_keys.push_back(temp);
 		}
@@ -72,14 +83,13 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 		} 
 	}
 
-	//Remove Duplicate Job Keys. This can happen when the the mask is not a partial mask
+	//Remove Duplicate Job Keys. This can happen when the the mask is a partial mask
 	std::sort(job_keys.begin(), job_keys.end());
 	job_keys.erase(std::unique( job_keys.begin(), job_keys.end()), job_keys.end());
 
 	//Use job keys to generate jobs for the specific number of threads
-
 	for (unsigned int job_index = 0; job_index < job_keys.size(); job_index++){
-		jobs.at(job_index) = new aes_brute_force_job(jobs_key_mask, job_keys[job_index], plain, cipher);
+		jobs.push_back(new aes_brute_force_job(job_mask, job_keys[job_index], plain, cipher));
 	}
 
 	// Each Job will use the job mask and set the min byte for the keys
@@ -90,10 +100,10 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 void aes_brute_force::start_threads(){
 	for(unsigned int job_index=0; job_index < jobs.size(); job_index++){
 		if(continuous_range){
-			threads.at(job_index % n_threads) = new std::async(&aes_brute_force_job::search_continuous, jobs.at(job_index), byte_min, byte_max);
+			threads[job_index % n_threads] = std::async(std::launch::async, &aes_brute_force_job::search_continuous, jobs.at(job_index), byte_min, byte_max);
 		}
 		else{
-			threads.at(job_index % n_threads) = new std::async(&aes_brute_force_job::search, jobs.at(job_index), byte_min, character_lookup_table);
+			threads[job_index % n_threads] = std::async(std::launch::async, &aes_brute_force_job::search, jobs.at(job_index), byte_min, character_lookup_table);
 		}
 		
 	}
@@ -102,7 +112,7 @@ void aes_brute_force::start_threads(){
 //Convert Key Mask to the number of bits and the location of them
 unsigned int aes_brute_force::mask_to_offsets(){
 	int largest_byte_idx=-1;
-	int largest_byte=0;
+	uint largest_byte=0;
 
 	for(unsigned int i=0; i < key_mask.size(); i++){
 		//Skip Byte if 00
@@ -199,16 +209,16 @@ bool aes_brute_force::aes128_self_test(){
 
 	auto computed_cipher = new uint8_t[16];
 	auto computed_plain  = new uint8_t[16];
-	auto encryption_key_schedule = new uint32_t[60];
-	auto decryption_key_schedule = new uint32_t[60];
+	auto encryption_key_schedule = new uint32_t[44];
+	auto decryption_key_schedule = new uint32_t[44];
 	
 	//Do encryption and decryption to make sure AESNI is working
-	aesni_128_key_schedule(enc_key, &encryption_key_schedule, &decryption_key_schedule);
-	aesni_128_encrypt_n(plain,  computed_cipher, 1, &encryption_key_schedule);
-	aesni_128_decrypt_n(cipher, computed_plain,  1, &decryption_key_schedule);
+	aesni_128_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
+	aesni_128_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
+	aesni_128_decrypt_n(cipher, computed_plain,  1, encryption_key_schedule);
 
 	//Check both cipher and plaintext
-	return memcmp(cipher,computed_cipher,sizeof(cipher)) && memcmp(plain,computed_plain,sizeof(plain));
+	return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
 }
 
 
@@ -220,16 +230,16 @@ bool aes_brute_force::aes192_self_test(){
 
 	auto computed_cipher = new uint8_t[16];
 	auto computed_plain  = new uint8_t[16];
-	auto encryption_key_schedule = new uint32_t[60];
-	auto decryption_key_schedule = new uint32_t[60];
+	auto encryption_key_schedule = new uint32_t[52];
+	auto decryption_key_schedule = new uint32_t[52];
 	
 	//Do encryption and decryption to make sure AESNI is working
-	aesni_192_key_schedule(enc_key, &encryption_key_schedule, &decryption_key_schedule);
-	aesni_192_encrypt_n(plain,  computed_cipher, 1, &encryption_key_schedule);
-	aesni_192_decrypt_n(cipher, computed_plain, 1,  &decryption_key_schedule);
+	aesni_192_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
+	aesni_192_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
+	aesni_192_decrypt_n(cipher, computed_plain, 1,  encryption_key_schedule);
 
 	//Check both cipher and plaintext
-	return memcmp(cipher,computed_cipher,sizeof(cipher)) && memcmp(plain,computed_plain,sizeof(plain));
+	return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
 }
 
 
@@ -245,12 +255,12 @@ bool aes_brute_force::aes256_self_test(){
 	auto decryption_key_schedule = new uint32_t[60];
 	
 	//Do encryption and decryption to make sure AESNI is working
-	aesni_256_key_schedule(enc_key, &encryption_key_schedule, &decryption_key_schedule);
-	aesni_256_encrypt_n(plain,  computed_cipher, 1, &encryption_key_schedule);
-	aesni_256_decrypt_n(cipher, computed_plain, 1,  &decryption_key_schedule);
+	aesni_256_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
+	aesni_256_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
+	aesni_256_decrypt_n(cipher, computed_plain, 1,  encryption_key_schedule);
 
 	//Check both cipher and plaintext
-	return memcmp(cipher,computed_cipher,sizeof(cipher)) && memcmp(plain,computed_plain,sizeof(plain));
+	return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
 }
 
 //Initalization
@@ -265,13 +275,21 @@ aes_brute_force::aes_brute_force(std::vector<uint8_t> key_mask, std::vector<uint
 
 	this->key_mask = std::vector<uint8_t>(key_mask);
 	this->key_input = std::vector<uint8_t>(key_input);
+	
+	//Set key_input
+	for (uint i = 0; i < key_input.size(); i++)
+	{
+		this->key_input[i] &= ~key_mask[i];
+	}
+	
 	this->plain = std::vector<uint8_t>(plain);
 	this->cipher = std::vector<uint8_t>(cipher);
 
-	//
+	std::cout << "Starting Self Tests" << std::endl;
 	preform_self_tests();
 
 	//
-	init_debug_output();
+	//std::cout << "Printing Debug Information";
+	//init_debug_output();
 }
 

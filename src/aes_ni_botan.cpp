@@ -9,11 +9,10 @@
 #include <wmmintrin.h>
 #include <cstring>
 
-
-inline void load_le(const uint32_t* output[], const uint8_t* input[], size_t count)
+inline void load_le(uint32_t* output, const uint8_t* input, size_t count)
    {
 	//Not dealing with endianness right now
-	std::memcpy(output, reinterpret_cast<uint32_t*>(input), count);
+	std::memcpy(output, reinterpret_cast<const uint32_t*>(input), count);
 }
 
 
@@ -105,7 +104,7 @@ __m128i aes_256_key_expansion(__m128i key, __m128i key2)
 /*
 * AES-128 Encryption
 */
-void aesni_128_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* encryption_keys[44])
+void aesni_128_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t encryption_keys[44])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -179,7 +178,7 @@ void aesni_128_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-128 Decryption
 */
-void aesni_128_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* decryption_keys[44])
+void aesni_128_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t decryption_keys[44])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -253,7 +252,7 @@ void aesni_128_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-128 Key Schedule
 */
-void aesni_128_key_schedule(const uint8_t key[], uint32_t* encryption_keys[44], uint32_t* decryption_keys[44])
+void aesni_128_key_schedule(const uint8_t key[], uint32_t encryption_keys[44], uint32_t decryption_keys[44])
 {
 	#define AES_128_key_exp(K, RCON) \
 		aes_128_key_expansion(K, _mm_aeskeygenassist_si128(K, RCON))
@@ -302,7 +301,7 @@ void aesni_128_key_schedule(const uint8_t key[], uint32_t* encryption_keys[44], 
 /*
 * AES-192 Encryption
 */
-void aesni_192_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* encryption_keys[52]) 
+void aesni_192_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t encryption_keys[52]) 
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -384,7 +383,7 @@ void aesni_192_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-192 Decryption
 */
-void aesni_192_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t* decryption_keys[52])
+void aesni_192_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t decryption_keys[52])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -466,18 +465,18 @@ void aesni_192_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-192 Key Schedule
 */
-void aesni_192_key_schedule(const uint8_t input_key[], uint32_t const* encryption_keys[52], uint32_t const* decryption_keys[52])
+void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[52], uint32_t decryption_keys[52])
 {
 	__m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));
 	__m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key + 8));
 	K1 = _mm_srli_si128(K1, 8);
 
-	load_le(encryption_keys, &input_key, 6);
+	load_le(encryption_keys, input_key, 6);
 
 	#define AES_192_key_exp(RCON, EK_OFF)                         \
 	  aes_192_key_expansion(&K0, &K1,                             \
 									_mm_aeskeygenassist_si128(K1, RCON),  \
-									(uint8_t*)encryption_keys[EK_OFF], EK_OFF == 48)
+									(uint8_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
 
 	AES_192_key_exp(0x01, 6);
 	AES_192_key_exp(0x02, 12);
@@ -512,7 +511,7 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t const* encryptio
 /*
 * AES-256 Encryption
 */
-void aesni_256_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t const* encryption_keys[60])
+void aesni_256_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t encryption_keys[60])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -600,7 +599,7 @@ void aesni_256_encrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-256 Decryption
 */
-void aesni_256_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t const* decryption_keys[60])
+void aesni_256_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint32_t decryption_keys[60])
 {
 	const __m128i* in_mm = reinterpret_cast<const __m128i*>(in);
 	__m128i* out_mm = reinterpret_cast<__m128i*>(out);
@@ -688,7 +687,7 @@ void aesni_256_decrypt_n(const uint8_t in[], uint8_t out[], size_t blocks, uint3
 /*
 * AES-256 Key Schedule
 */
-void aesni_256_key_schedule(const uint8_t input_key[], uint32_t const* encryption_keys[60], uint32_t const* decryption_keys[60])
+void aesni_256_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[60], uint32_t decryption_keys[60])
 {
 
 	const __m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));

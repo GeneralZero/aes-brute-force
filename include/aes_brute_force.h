@@ -5,13 +5,17 @@
 #include <wmmintrin.h> 
 #include <future>
 
+#include "aes_brute_force_job.h"
+
+void print_bytes(std::vector<uint8_t> key);
+
 class aes_brute_force{
 	public:
 		//Flags
 		bool key_found;
 		bool done;
 		// Is the range continuous
-		static bool continuous_range;
+		bool continuous_range;
 
 		//Mask Information
 		std::vector<unsigned int> mask_indexes;
@@ -41,8 +45,8 @@ class aes_brute_force{
 
 		//Threads and jobs
 		unsigned int n_threads;
-		std::vector<std::thread *> threads;
-		std::vector<aes_brute_force *> jobs;
+		std::vector<std::future<uint64_t>> threads;
+		std::vector<aes_brute_force_job *> jobs;
 
 		//Run Threads Functions
 		void start_threads();
@@ -61,9 +65,9 @@ class aes_brute_force{
 
 		//Test AES Implimenations to check for aes_ni instructions
 		void preform_self_tests();
-		bool aes_brute_force::aes128_self_test();
-		bool aes_brute_force::aes192_self_test();
-		bool aes_brute_force::aes256_self_test();
+		bool aes128_self_test();
+		bool aes192_self_test();
+		bool aes256_self_test();
 
 		//Setup Functions
 		void set_character_range(std::vector<uint8_t> valid_bytes);
