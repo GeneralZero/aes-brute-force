@@ -30,7 +30,12 @@ class aes_brute_force_job{
 		//Character Range
 		uint8_t character_lookup_table[256];
 		uint8_t byte_min = 0x00;
-		uint8_t byte_max = 0xFF;		
+		uint8_t byte_max = 0xFF;
+
+		//Encryption Varables
+		uint32_t* test_encryption_key;
+        uint32_t* test_decryption_key;
+		uint8_t* test_cipher;
 
 		//Functions
 		uint64_t search_continuous(uint8_t byte_min, uint8_t byte_max);

@@ -55,16 +55,12 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 	//Set the largest_byte_idx to Zero
 	job_mask[largest_byte_idx] = 0x00;
 
-	//Print info about the Mask Information
-	//printf("\tjobs_key_mask: ");
-	//print_bytes(jobs_key_mask);
-
 	//Generate Keys for Jobs
 	std::vector<std::vector<uint8_t>> job_keys;
 
 	if (continuous_range){
 		//Generate Job Keys Baised on Character start for a continious range
-		for (size_t i = 0; i < number_of_characters; i++){
+		for (size_t i = 0; i <= number_of_characters; i++){
 			//Generate the key from the input key and the keymask with the specific character as the unique key
 			std::vector<uint8_t> temp{key_input};
 			temp.at(largest_byte_idx) = (byte_min + i) & replace_key_byte;

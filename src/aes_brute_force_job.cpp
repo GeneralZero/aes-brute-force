@@ -15,11 +15,34 @@ aes_brute_force_job::aes_brute_force_job(std::vector<uint8_t> key_mask, std::vec
     this->key_input = std::vector<uint8_t>(key_input);
     this->plain = std::vector<uint8_t>(plain);
     this->cipher = std::vector<uint8_t>(cipher);
+
+    this->test_cipher = new uint8_t[16];
+
+    if (this->key_input.size() == 16)
+    {
+        //128 bit key
+        test_encryption_key = new uint32_t[44]();
+        test_decryption_key = new uint32_t[44]();
+    }
+    else if (this->key_input.size() == 24){
+        //192 bit key
+        test_encryption_key = new uint32_t[52]();
+        test_decryption_key = new uint32_t[52]();
+    }
+    else if(this->key_input.size() == 32){
+        //256 bit key
+        test_encryption_key = new uint32_t[60]();
+        test_decryption_key = new uint32_t[60]();
+    }
+    else{
+
+    }
+    
+
 }
 
 
 uint64_t aes_brute_force_job::search_continuous(uint8_t byte_min, uint8_t byte_max){
-    std::vector<uint8_t> test_cipher;
     std::vector<uint8_t> test_key(key_input);
 
     //Set varables
@@ -66,10 +89,6 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
 
     if (index == non_zero_indexes.size() -1){
 
-        uint8_t* test_cipher = new uint8_t[16];
-        uint32_t* test_encryption_key;
-        uint32_t* test_decryption_key;
-
         //Loop over the last index In range of byte_min - byte_max
         for (size_t j = byte_min; j <= byte_max; j++)
         {
@@ -85,10 +104,6 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
             switch (test_key.size()){
                 case 16:
                 {
-                    //128 bit key
-                    test_encryption_key = new uint32_t[44]();
-                    test_decryption_key = new uint32_t[44]();
-
                     //Get Key Decryption Keys
                     aesni_128_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
 
@@ -99,10 +114,6 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 }
                 case 24:
                 {
-                    //192 bit key
-                    test_encryption_key = new uint32_t[52]();
-                    test_decryption_key = new uint32_t[52]();
-
                     //Get Key Decryption Keys
                     aesni_192_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
 
@@ -113,10 +124,6 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 }
                 case 32:
                 {
-                    //256 bit key
-                    test_encryption_key = new uint32_t[60]();
-                    test_decryption_key = new uint32_t[60]();
-
                     //Get Key Decryption Keys
                     aesni_256_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
 
@@ -138,9 +145,6 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 done = true;
                 break;
             }
-
-            delete test_encryption_key;
-            delete test_decryption_key;
         }
 
     }

@@ -173,26 +173,26 @@ int main (int argc, char* argv[]){
 	//Start Threads
 	bruteforcer->start_threads();
 
-	
-
-
 	//Check Threads for AES KEY
 	uint64_t loop_cnt=1;
 	int thread_found=-1;
-	for(unsigned int thread_index=0; thread_index < n_threads; thread_index++){
+	for(unsigned int job_index=0; job_index < bruteforcer->jobs.size(); job_index++){
 
 		//Synchronize threads 
-		uint64_t test = bruteforcer->threads.at(thread_index).get();
+		//Need to FIX
+		if (job_index < bruteforcer->threads.size()){
+			uint64_t test = bruteforcer->threads.at(job_index).get();
+		}		
 		
 		//Check if Key was found
-		if(bruteforcer->jobs.at(thread_index)->key_found){
-			thread_found = thread_index;
-			auto winning_thread = bruteforcer->jobs.at(thread_index);
+		if(bruteforcer->jobs.at(job_index)->key_found){
+			thread_found = job_index;
+			auto winning_thread = bruteforcer->jobs.at(job_index);
 			copy(winning_thread->correct_key.begin(), winning_thread->correct_key.end(), back_inserter(final_key));
 		}
 
 		//Update Count of Attempts
-		loop_cnt += bruteforcer->jobs.at(thread_index)->loop_cnt;
+		loop_cnt += bruteforcer->jobs.at(job_index)->loop_cnt;
 	}
 
 	//Stop Timer
