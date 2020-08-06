@@ -298,6 +298,37 @@ void aesni_128_key_schedule(const uint8_t key[], uint32_t encryption_keys[44], u
 	_mm_storeu_si128(DK_mm + 10, K0);
 }
 
+void aesni_128_key_schedule_only_encryption(const uint8_t key[], uint32_t encryption_keys[44])
+{
+	#define AES_128_key_exp(K, RCON) \
+		aes_128_key_expansion(K, _mm_aeskeygenassist_si128(K, RCON))
+
+	const __m128i K0  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(key));
+	const __m128i K1  = AES_128_key_exp(K0, 0x01);
+	const __m128i K2  = AES_128_key_exp(K1, 0x02);
+	const __m128i K3  = AES_128_key_exp(K2, 0x04);
+	const __m128i K4  = AES_128_key_exp(K3, 0x08);
+	const __m128i K5  = AES_128_key_exp(K4, 0x10);
+	const __m128i K6  = AES_128_key_exp(K5, 0x20);
+	const __m128i K7  = AES_128_key_exp(K6, 0x40);
+	const __m128i K8  = AES_128_key_exp(K7, 0x80);
+	const __m128i K9  = AES_128_key_exp(K8, 0x1B);
+	const __m128i K10 = AES_128_key_exp(K9, 0x36);
+
+	__m128i* EK_mm = reinterpret_cast<__m128i*>(encryption_keys);
+	_mm_storeu_si128(EK_mm     , K0);
+	_mm_storeu_si128(EK_mm +  1, K1);
+	_mm_storeu_si128(EK_mm +  2, K2);
+	_mm_storeu_si128(EK_mm +  3, K3);
+	_mm_storeu_si128(EK_mm +  4, K4);
+	_mm_storeu_si128(EK_mm +  5, K5);
+	_mm_storeu_si128(EK_mm +  6, K6);
+	_mm_storeu_si128(EK_mm +  7, K7);
+	_mm_storeu_si128(EK_mm +  8, K8);
+	_mm_storeu_si128(EK_mm +  9, K9);
+	_mm_storeu_si128(EK_mm + 10, K10);
+}
+
 /*
 * AES-192 Encryption
 */
@@ -506,6 +537,31 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 	_mm_storeu_si128(DK_mm + 10, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 2)));
 	_mm_storeu_si128(DK_mm + 11, _mm_aesimc_si128(_mm_loadu_si128(EK_mm + 1)));
 	_mm_storeu_si128(DK_mm + 12, _mm_loadu_si128(EK_mm + 0));
+}
+
+void aesni_192_key_schedule_only_encryption(const uint8_t input_key[], uint32_t encryption_keys[52])
+{
+	__m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));
+	__m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key + 8));
+	K1 = _mm_srli_si128(K1, 8);
+
+	load_le(encryption_keys, input_key, 6);
+
+	#define AES_192_key_exp(RCON, EK_OFF)                         \
+	  aes_192_key_expansion(&K0, &K1,                             \
+									_mm_aeskeygenassist_si128(K1, RCON),  \
+									(uint8_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
+
+	AES_192_key_exp(0x01, 6);
+	AES_192_key_exp(0x02, 12);
+	AES_192_key_exp(0x04, 18);
+	AES_192_key_exp(0x08, 24);
+	AES_192_key_exp(0x10, 30);
+	AES_192_key_exp(0x20, 36);
+	AES_192_key_exp(0x40, 42);
+	AES_192_key_exp(0x80, 48);
+
+	#undef AES_192_key_exp
 }
 
 /*
@@ -747,6 +803,50 @@ void aesni_256_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 	_mm_storeu_si128(DK_mm + 12, _mm_aesimc_si128(K2));
 	_mm_storeu_si128(DK_mm + 13, _mm_aesimc_si128(K1));
 	_mm_storeu_si128(DK_mm + 14, K0);
+}
+
+void aesni_256_key_schedule_only_encryption(const uint8_t input_key[], uint32_t encryption_keys[60])
+{
+
+	const __m128i K0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key));
+	const __m128i K1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(input_key + 16));
+
+	const __m128i K2 = aes_128_key_expansion(K0, _mm_aeskeygenassist_si128(K1, 0x01));
+	const __m128i K3 = aes_256_key_expansion(K1, K2);
+
+	const __m128i K4 = aes_128_key_expansion(K2, _mm_aeskeygenassist_si128(K3, 0x02));
+	const __m128i K5 = aes_256_key_expansion(K3, K4);
+
+	const __m128i K6 = aes_128_key_expansion(K4, _mm_aeskeygenassist_si128(K5, 0x04));
+	const __m128i K7 = aes_256_key_expansion(K5, K6);
+
+	const __m128i K8 = aes_128_key_expansion(K6, _mm_aeskeygenassist_si128(K7, 0x08));
+	const __m128i K9 = aes_256_key_expansion(K7, K8);
+
+	const __m128i K10 = aes_128_key_expansion(K8, _mm_aeskeygenassist_si128(K9, 0x10));
+	const __m128i K11 = aes_256_key_expansion(K9, K10);
+
+	const __m128i K12 = aes_128_key_expansion(K10, _mm_aeskeygenassist_si128(K11, 0x20));
+	const __m128i K13 = aes_256_key_expansion(K11, K12);
+
+	const __m128i K14 = aes_128_key_expansion(K12, _mm_aeskeygenassist_si128(K13, 0x40));
+
+	__m128i* EK_mm = reinterpret_cast<__m128i*>(encryption_keys);
+	_mm_storeu_si128(EK_mm     , K0);
+	_mm_storeu_si128(EK_mm +  1, K1);
+	_mm_storeu_si128(EK_mm +  2, K2);
+	_mm_storeu_si128(EK_mm +  3, K3);
+	_mm_storeu_si128(EK_mm +  4, K4);
+	_mm_storeu_si128(EK_mm +  5, K5);
+	_mm_storeu_si128(EK_mm +  6, K6);
+	_mm_storeu_si128(EK_mm +  7, K7);
+	_mm_storeu_si128(EK_mm +  8, K8);
+	_mm_storeu_si128(EK_mm +  9, K9);
+	_mm_storeu_si128(EK_mm + 10, K10);
+	_mm_storeu_si128(EK_mm + 11, K11);
+	_mm_storeu_si128(EK_mm + 12, K12);
+	_mm_storeu_si128(EK_mm + 13, K13);
+	_mm_storeu_si128(EK_mm + 14, K14);
 }
 
 #undef AES_ENC_4_ROUNDS
