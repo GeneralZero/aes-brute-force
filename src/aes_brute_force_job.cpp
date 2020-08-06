@@ -103,7 +103,7 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 case 16:
                 {
                     //Get Key Encryption/Decryption Keys
-                    aesni_128_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
+                    aesni_128_key_schedule_only_encryption(const_cast<const uint8_t*>(test_key.data()), test_encryption_key);
 
                     //Do Encryption
                     aesni_128_encrypt_n(plain, test_cipher, 1, test_encryption_key);
@@ -113,7 +113,7 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 case 24:
                 {
                     //Get Key Encryption/Decryption Keys
-                    aesni_192_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
+                    aesni_192_key_schedule_only_encryption(const_cast<const uint8_t*>(test_key.data()), test_encryption_key);
 
                     //Do Encryption
                     aesni_192_encrypt_n(plain, test_cipher, 1, test_encryption_key);
@@ -123,7 +123,7 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
                 case 32:
                 {
                     //Get Key Encryption/Decryption Keys
-                    aesni_256_key_schedule(const_cast<const uint8_t*>(test_key.data()), test_encryption_key, test_decryption_key);
+                    aesni_256_key_schedule_only_encryption(const_cast<const uint8_t*>(test_key.data()), test_encryption_key);
 
                     //Do Encryption
                     aesni_256_encrypt_n(plain, test_cipher, 1, test_encryption_key);
