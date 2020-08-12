@@ -146,10 +146,14 @@ void aes_brute_force::set_character_range(std::vector<uint8_t> valid_bytes){
 
 void aes_brute_force::set_character_range(uint8_t min_byte, uint8_t max_byte){
     //Sort values and make sure that their is no duplicates
-
-    this->byte_min = min_byte;
-    this->byte_max = max_byte;
-
+    if(min_byte <= max_byte ){
+	this->byte_min = min_byte;
+	this->byte_max = max_byte;
+    }
+    else{
+	std::cerr << "Minmum byte is bigger than the Max byte" << std::endl;
+	exit(-1);
+    }
     this->number_of_characters = max_byte - min_byte;
 
     this->continuous_range = true;
