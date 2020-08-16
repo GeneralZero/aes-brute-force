@@ -25,4 +25,4 @@ $(OUTPUT): $(SOURCES) $(HEADERS)
 	$(CXX) -g -pg -fno-omit-frame-pointer $(CXXFLAGS) $(CPPFLAGS) -o $(OUTPUT)-test $(SOURCES)
 
 clean:
-	$(RM) $(OUTPUT)
+	$(RM) $(OUTPUT)-*

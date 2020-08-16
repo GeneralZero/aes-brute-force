@@ -142,6 +142,7 @@ void aes_brute_force::set_character_range(std::vector<uint8_t> valid_bytes){
     number_of_characters = valid_bytes.size();
 
     this->valid_bytes = valid_bytes;
+    this->continuous_range = false;
 }
 
 void aes_brute_force::set_character_range(uint8_t min_byte, uint8_t max_byte){
