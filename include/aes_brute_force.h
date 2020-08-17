@@ -26,7 +26,6 @@ class aes_brute_force{
         uint64_t loop_cnt;
 
         //Input and Output AES information
-        uint8_t correct_key[16];
         std::vector<uint8_t> key_mask;
         std::vector<uint8_t> key_input;
         std::vector<uint8_t> plain;

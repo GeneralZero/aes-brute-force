@@ -144,7 +144,7 @@ void aes_brute_force_job::search_recursion_list(std::vector<uint8_t> test_key, u
             }
             
             //Test if Ciphertexts are the same
-            if(memcmp(test_cipher, cipher, 16) == 0){
+            if(memcmp(test_cipher, cipher, 16) == 0&& key_found == false ){
                 copy(test_key.begin(), test_key.end(), back_inserter(correct_key)); 
                 key_found = true;
                 done = true;
