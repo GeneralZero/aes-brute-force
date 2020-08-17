@@ -198,10 +198,10 @@ bool aes_brute_force::aes128_self_test(){
     //Do encryption and decryption to make sure AESNI is working
     aesni_128_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
     aesni_128_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
-    aesni_128_decrypt_n(cipher, computed_plain,  1, encryption_key_schedule);
+    aesni_128_decrypt_n(cipher, computed_plain,  1, decryption_key_schedule);
 
     //Check both cipher and plaintext
-    return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
+    return (memcmp(cipher, computed_cipher, sizeof(cipher)) == 0 && memcmp(plain, computed_plain, sizeof(plain)) == 0);
 }
 
 
@@ -219,10 +219,10 @@ bool aes_brute_force::aes192_self_test(){
     //Do encryption and decryption to make sure AESNI is working
     aesni_192_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
     aesni_192_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
-    aesni_192_decrypt_n(cipher, computed_plain, 1,  encryption_key_schedule);
+    aesni_192_decrypt_n(cipher, computed_plain, 1,  decryption_key_schedule);
 
     //Check both cipher and plaintext
-    return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
+    return (memcmp(cipher, computed_cipher, sizeof(cipher)) == 0 && memcmp(plain, computed_plain, sizeof(plain)) == 0);
 }
 
 
@@ -240,10 +240,10 @@ bool aes_brute_force::aes256_self_test(){
     //Do encryption and decryption to make sure AESNI is working
     aesni_256_key_schedule(enc_key, encryption_key_schedule, decryption_key_schedule);
     aesni_256_encrypt_n(plain,  computed_cipher, 1, encryption_key_schedule);
-    aesni_256_decrypt_n(cipher, computed_plain, 1,  encryption_key_schedule);
+    aesni_256_decrypt_n(cipher, computed_plain, 1,  decryption_key_schedule);
 
     //Check both cipher and plaintext
-    return memcmp(cipher, computed_cipher, sizeof(cipher)) || memcmp(plain, computed_plain, sizeof(plain));
+    return (memcmp(cipher, computed_cipher, sizeof(cipher)) == 0 && memcmp(plain, computed_plain, sizeof(plain)) == 0);
 }
 
 //Initalization
