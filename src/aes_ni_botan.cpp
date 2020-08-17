@@ -10,9 +10,10 @@
 #include <cstring>
 
 inline void load_le(uint32_t* output, const uint8_t* input, size_t count)
-   {
+{
 	//Not dealing with endianness right now
-	std::memcpy(output, reinterpret_cast<const uint32_t*>(input), count);
+	//std::memcpy(output, reinterpret_cast<const uint32_t*>(input), count);
+	std::memcpy(output, input, count * sizeof(uint32_t));
 }
 
 
@@ -26,7 +27,7 @@ __m128i aes_128_key_expansion(__m128i key, __m128i key_with_rcon)
 }
 
 void aes_192_key_expansion(__m128i* K1, __m128i* K2, __m128i key2_with_rcon,
-									uint8_t out[], bool last)
+									uint32_t out[], bool last)
 {
 	__m128i key1 = *K1;
 	__m128i key2 = *K2;
@@ -507,7 +508,7 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 	#define AES_192_key_exp(RCON, EK_OFF)                         \
 	  aes_192_key_expansion(&K0, &K1,                             \
 									_mm_aeskeygenassist_si128(K1, RCON),  \
-									(uint8_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
+									(uint32_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
 
 	AES_192_key_exp(0x01, 6);
 	AES_192_key_exp(0x02, 12);
@@ -550,7 +551,7 @@ void aesni_192_key_schedule_only_encryption(const uint8_t input_key[], uint32_t 
 	#define AES_192_key_exp(RCON, EK_OFF)                         \
 	  aes_192_key_expansion(&K0, &K1,                             \
 									_mm_aeskeygenassist_si128(K1, RCON),  \
-									(uint8_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
+									(uint32_t*)(&encryption_keys[EK_OFF]), EK_OFF == 48)
 
 	AES_192_key_exp(0x01, 6);
 	AES_192_key_exp(0x02, 12);
