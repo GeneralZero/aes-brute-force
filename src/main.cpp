@@ -130,7 +130,7 @@ int main (int argc, char* argv[]){
     //Check to make sure that the AES implimenation works on the CPU
     bruteforcer->preform_self_tests();
 
-    if(strcmp("restrict", argv[5]) == 0){
+    if(argc >= 6 && strcmp("restrict", argv[5]) == 0){
         //Restrict the range of characters to specific character set
 
         if(argc==6){
