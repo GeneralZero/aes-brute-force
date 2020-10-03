@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <regex>
 #include <assert.h>
+#include <future>
 
 
 //Convert Single Hex to uint8_t
@@ -177,27 +178,45 @@ int main (int argc, char* argv[]){
     //Check Threads for AES KEY
     uint64_t loop_cnt=1;
     int thread_found=-1;
-    for(unsigned int job_index=0; job_index < bruteforcer->jobs.size(); job_index++){
+	unsigned int threads_done = 0;
+	unsigned int threads_length = bruteforcer->jobs.size();
 
-        //Synchronize threads 
-        //Need to FIX
-        if (job_index < bruteforcer->threads.size()){
-            bruteforcer->threads.at(job_index).get();
-        }       
-        
-        //Check if Key was found
-        if(bruteforcer->jobs.at(job_index)->key_found){
-            thread_found = job_index;
-            auto winning_thread = bruteforcer->jobs.at(job_index);
-            copy(winning_thread->correct_key.begin(), winning_thread->correct_key.end(), back_inserter(final_key));
-        }
+	while(thread_found == -1 && threads_done != threads_length){
+		threads_done = 0;
 
-        //Update Count of Attempts
-        loop_cnt += bruteforcer->jobs.at(job_index)->loop_cnt;
-    }
+		for(unsigned int job_index=0; job_index < threads_length; job_index++){
+
+			//Check each Thread to see if they found the key
+			if(bruteforcer->jobs.at(job_index)->key_found){
+				thread_found = job_index;
+				auto winning_thread = bruteforcer->jobs.at(job_index);
+				copy(winning_thread->correct_key.begin(), winning_thread->correct_key.end(), back_inserter(final_key));
+				break;
+			}
+
+			if(bruteforcer->threads.at(job_index).wait_for(std::chrono::milliseconds(100)) == std::future_status::ready){
+				threads_done += 1;
+			}
+
+			//Synchronize threads 
+			//Need to FIX
+			/*
+			if (job_index < bruteforcer->threads.size()){
+				bruteforcer->threads.at(job_index).get();
+			}
+			*/
+    	}
+	}
 
     //Stop Timer
     std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+
+	//Fix loop count
+	for(unsigned int job_index=0; job_index < threads_length; job_index++){
+
+		//Update Count of Attempts
+		loop_cnt += bruteforcer->jobs.at(job_index)->loop_cnt;
+	}
 
     //Print Key Info
     if(thread_found != -1){

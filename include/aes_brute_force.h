@@ -2,7 +2,6 @@
 #include <vector>
 #include <cstring>
 #include <inttypes.h>
-#include <wmmintrin.h> 
 #include <future>
 
 #include "aes_brute_force_job.h"

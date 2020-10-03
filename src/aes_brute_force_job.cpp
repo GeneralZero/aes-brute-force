@@ -96,7 +96,7 @@ void aes_brute_force_job::search_recursion_list(std::vector<uint8_t> test_key, u
     if (index == non_zero_index_length){
 
         //Loop over the last index In range of byte_min - byte_max
-        for (size_t j = 0; j <= character_lookup_count; j++)
+        for (size_t j = 0; j <= character_lookup_count && done != true; j++)
         {
             //Change the last index
             test_key[non_zero_indexes[index]] = valid_characters[j] & key_mask[non_zero_indexes[index]];
@@ -154,7 +154,7 @@ void aes_brute_force_job::search_recursion_list(std::vector<uint8_t> test_key, u
 
     }
     else{
-        for (size_t j = 0; j < character_lookup_count; j++){
+        for (size_t j = 0; j < character_lookup_count && done != true; j++){
             //Set New test Key
             test_key[non_zero_indexes[index]] = valid_characters[j] & key_mask[non_zero_indexes[index]];
 
@@ -170,7 +170,7 @@ void aes_brute_force_job::search_recursion_continious(std::vector<uint8_t> test_
     if (index == non_zero_index_length){
 
         //Loop over the last index In range of byte_min - byte_max
-        for (size_t j = byte_min; j <= byte_max; j++)
+        for (size_t j = byte_min; j <= byte_max && done != true; j++)
         {
             //Change the last index
             test_key[non_zero_indexes[index]] = j & key_mask[non_zero_indexes[index]];

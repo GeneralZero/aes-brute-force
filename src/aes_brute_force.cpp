@@ -53,7 +53,7 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
     }
 
     //Set the number of threads
-    threads.resize(this->n_threads);
+    //threads.resize(this->n_threads);
     //jobs.resize(this->n_threads);
 
     //Generate Job Mask
@@ -97,10 +97,10 @@ void aes_brute_force::setup_threads(unsigned int threads_count){
 void aes_brute_force::start_threads(){
     for(unsigned int job_index=0; job_index < jobs.size(); job_index++){
         if(continuous_range){
-            threads[job_index % n_threads] = std::async(std::launch::async, &aes_brute_force_job::search_continuous, jobs.at(job_index), byte_min, byte_max);
+            threads.push_back(std::async(std::launch::async, &aes_brute_force_job::search_continuous, jobs.at(job_index), byte_min, byte_max));
         }
         else{
-            threads[job_index % n_threads] = std::async(std::launch::async, &aes_brute_force_job::search, jobs.at(job_index), valid_bytes);
+            threads.push_back(std::async(std::launch::async, &aes_brute_force_job::search, jobs.at(job_index), valid_bytes));
         }
         
     }
