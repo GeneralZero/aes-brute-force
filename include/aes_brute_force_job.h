@@ -7,7 +7,6 @@
 #include <cstring>
 #include <iostream>
 #include <inttypes.h>
-#include <wmmintrin.h> 
 
 class aes_brute_force_job{
     public:
