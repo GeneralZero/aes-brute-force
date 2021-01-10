@@ -891,9 +891,9 @@ uint8x16_t aes_128_key_expansion(uint8x16_t key, uint8x16_t key_with_rcon)
 	//
 	key_with_rcon = vreinterpretq_u8_u32(vdupq_n_u32(vgetq_lane_u32(vreinterpretq_u32_u8(key_with_rcon), 3)));
 	//vextq_s8((key, vdupq_n_u8(0), 16 - 4)
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
 	return veorq_u8(key, key_with_rcon);
 }
 
@@ -904,9 +904,9 @@ void aes_192_key_expansion(uint8x16_t* K1, uint8x16_t* K2, uint8x16_t key2_with_
 	uint8x16_t key2 = *K2;
 
 	key2_with_rcon = vreinterpretq_u8_u32(vdupq_n_u32(vgetq_lane_u32(vreinterpretq_u32_u8(key2_with_rcon), 1)));
-	key1 = veorq_u8(key1, vextq_u8(key1, vdupq_n_u8(0), 16 - 4));
-	key1 = veorq_u8(key1, vextq_u8(key1, vdupq_n_u8(0), 16 - 4));
-	key1 = veorq_u8(key1, vextq_u8(key1, vdupq_n_u8(0), 16 - 4));
+	key1 = veorq_u8(key1, vextq_u8(vdupq_n_u8(0), key1, 16 - 4));
+	key1 = veorq_u8(key1, vextq_u8(vdupq_n_u8(0), key1, 16 - 4));
+	key1 = veorq_u8(key1, vextq_u8(vdupq_n_u8(0), key1, 16 - 4));
 	key1 = veorq_u8(key1, key2_with_rcon);
 
 	*K1 = key1;
@@ -915,12 +915,12 @@ void aes_192_key_expansion(uint8x16_t* K1, uint8x16_t* K2, uint8x16_t key2_with_
 	if(last)
 		return;
 
-	key2 = veorq_u8(key2, vextq_u8(key2, vdupq_n_u8(0), 16 - 4));
+	key2 = veorq_u8(key2, vextq_u8(vdupq_n_u8(0), key2, 16 - 4));
 	key2 = veorq_u8(key2, vreinterpretq_u8_u32(vdupq_n_u32(vgetq_lane_u32(vreinterpretq_u32_u8(key1), 3))));
 
 	*K2 = key2;
 	out[4] = vgetq_lane_u32(vreinterpretq_u32_u8(key2), 0);
-	out[5] = vgetq_lane_u32(vreinterpretq_u32_u8(vextq_u8(key2, vdupq_n_u8(0), 16 - 4)), 0);
+	out[5] = vgetq_lane_u32(vreinterpretq_u32_u8(vextq_u8(key2, vdupq_n_u8(0), 16 - 12)), 0);
 }
 
 /*
@@ -931,9 +931,9 @@ uint8x16_t aes_256_key_expansion(uint8x16_t key, uint8x16_t key2)
 	uint8x16_t key_with_rcon = aeskeygenassist_si8x16(key2, 0x00);
 	key_with_rcon = vreinterpretq_u8_u32(vdupq_n_u32(vgetq_lane_u32(vreinterpretq_u32_u8(key_with_rcon), 2)));
 
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
-	key = veorq_u8(key, vextq_u8(key, vdupq_n_u8(0), 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
+	key = veorq_u8(key, vextq_u8(vdupq_n_u8(0), key, 16 - 4));
 	return veorq_u8(key, key_with_rcon);
 }
 
@@ -1134,15 +1134,15 @@ void aesni_128_key_schedule(const uint8_t key[], uint32_t encryption_keys[44], u
 
 	uint8x16_t* DK_mm = reinterpret_cast<uint8x16_t*>(decryption_keys);
 	DK_mm[0]  = K10;
-	DK_mm[1]  = K9;
-	DK_mm[2]  = K8;
-	DK_mm[3]  = K7;
-	DK_mm[4]  = K6;
-	DK_mm[5]  = K5;
-	DK_mm[6]  = K4;
-	DK_mm[7]  = K3;
-	DK_mm[8]  = K2;
-	DK_mm[9]  = K1;
+	DK_mm[1]  = vaesimcq_u8(K9);
+	DK_mm[2]  = vaesimcq_u8(K8);
+	DK_mm[3]  = vaesimcq_u8(K7);
+	DK_mm[4]  = vaesimcq_u8(K6);
+	DK_mm[5]  = vaesimcq_u8(K5);
+	DK_mm[6]  = vaesimcq_u8(K4);
+	DK_mm[7]  = vaesimcq_u8(K3);
+	DK_mm[8]  = vaesimcq_u8(K2);
+	DK_mm[9]  = vaesimcq_u8(K1);
 	DK_mm[10] = K0;
 }
 
@@ -1324,6 +1324,7 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 {
 	uint8x16_t K0 = vld1q_u8(input_key);
 	uint8x16_t K1 = vld1q_u8(input_key + 8);
+	//vextq_u8
 	K1 = vextq_u8(K1, vdupq_n_u8(0), 16 - 8);
 
 	load_le(encryption_keys, input_key, 6);
@@ -1348,7 +1349,7 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 	const uint8x16_t* EK_mm = reinterpret_cast<const uint8x16_t*>(encryption_keys);
 
 	uint8x16_t* DK_mm = reinterpret_cast<uint8x16_t*>(decryption_keys);
-	DK_mm[0]  = vaesimcq_u8(EK_mm[12]);
+	DK_mm[0]  = EK_mm[12];
 	DK_mm[1]  = vaesimcq_u8(EK_mm[11]);
 	DK_mm[2]  = vaesimcq_u8(EK_mm[10]);
 	DK_mm[3]  = vaesimcq_u8(EK_mm[9]);
@@ -1360,14 +1361,14 @@ void aesni_192_key_schedule(const uint8_t input_key[], uint32_t encryption_keys[
 	DK_mm[9]  = vaesimcq_u8(EK_mm[3]);
 	DK_mm[10] = vaesimcq_u8(EK_mm[2]);
 	DK_mm[11] = vaesimcq_u8(EK_mm[1]);
-	DK_mm[12] = vaesimcq_u8(EK_mm[0]);
+	DK_mm[12] = EK_mm[0];
 }
 
 void aesni_192_key_schedule_only_encryption(const uint8_t input_key[], uint32_t encryption_keys[52])
 {
 	uint8x16_t K0 = vld1q_u8(input_key);
 	uint8x16_t K1 = vld1q_u8(input_key + 8);
-	K1 = vextq_u8(K1, vdupq_n_u8(0), 16 - 4);
+	K1 = vextq_u8(vdupq_n_u8(0), K1, 16 - 4);
 
 	load_le(encryption_keys, input_key, 6);
 
