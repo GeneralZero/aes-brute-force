@@ -15,40 +15,6 @@ make
 #Usage 2: ./aes-brute-force-fast <key_mask> <key_in> <plain> <cipher> restrict <sorted list of bytes> [n_threads]
 ```
 
-## Preformance
-
-### Running on AWS x84-64 (c5ad.8xlarge)
-
-**Command Output:**
-```
->>> ./aes-brute-force-fast FF000000_FFFFFFFF_00000000_00000000_00000000_00000000_00000000_00000000 5403e7dbcf2f5909be97b6fe33bfdcc82d95eb862e8fefda14f180d9a407c745 3d7a76d4cca6bd3d8a8d4561722e6025 44949e8716726f928eb111bb899c506e
-[...]
-        1099511627611 AES128 operations done in 2604.35s
-        2ns per AES128 operation
-        422.18 million keys per second
-```
-
-**Average time to Brute Keys:**
-- 4 bytes (32 bits) takes about 5.1 seconds
-- 5 bytes (40 bits) takes about 21.5 mins.
-- 6 bytes (48 bits) takes about 92.6 hours.
-
-### Running on AWS ARM64 (c6gd.8xlarge)
-
-**Command Output:**
-```
->>> ./aes-brute-force-fast FF000000_FFFFFFFF_00000000_00000000_00000000_00000000_00000000_00000000 5403e7dbcf2f5909be97b6fe33bfdcc82d95eb862e8fefda14f180d9a407c745 3d7a76d4cca6bd3d8a8d4561722e6025 44949e8716726f928eb111bb899c506e
-[...]
-        364383123732 AES128 operations done in 1051.07s
-        2ns per AES128 operation
-        346.68 million keys per second
-```
-
-**Average time to Brute Keys:**
-- 4 bytes (32 bits) takes about 6.2 seconds
-- 5 bytes (40 bits) takes about 26.4 mins.
-- 6 bytes (48 bits) takes about 112.8 Hours.
-
 ## Examples
 
 ### Bruteforcing Base64 Character set
@@ -87,6 +53,40 @@ Arguments do not need to have Underscores but does makes it more readable.
 # Combination of hex_lowercase and UTF-16LE
 ./aes-brute-force-fast FF00FF00_FF00FF00_FF00FF00_FF00FF00 007E1500_2800D2A6_ABF70088_09CF4F3C 3243F6A8_885A308D_313198A2_E0370734 3925841D_02DC09FB_DC118597_196A0B32 restrict 30_31_32_33_34_35_36_37_38_39_61_62_63_64_65_66
 ```
+
+## Preformance
+
+### Running on AWS x84-64 (c5ad.8xlarge)
+
+**Command Output:**
+```
+>>> ./aes-brute-force-fast FF000000_FFFFFFFF_00000000_00000000_00000000_00000000_00000000_00000000 5403e7dbcf2f5909be97b6fe33bfdcc82d95eb862e8fefda14f180d9a407c745 3d7a76d4cca6bd3d8a8d4561722e6025 44949e8716726f928eb111bb899c506e
+[...]
+        1099511627611 AES128 operations done in 2604.35s
+        2ns per AES128 operation
+        422.18 million keys per second
+```
+
+**Average time to Brute Keys:**
+- 4 bytes (32 bits) takes about 5.1 seconds
+- 5 bytes (40 bits) takes about 21.5 mins.
+- 6 bytes (48 bits) takes about 92.6 hours.
+
+### Running on AWS ARM64 (c6gd.8xlarge)
+
+**Command Output:**
+```
+>>> ./aes-brute-force-fast FF000000_FFFFFFFF_00000000_00000000_00000000_00000000_00000000_00000000 5403e7dbcf2f5909be97b6fe33bfdcc82d95eb862e8fefda14f180d9a407c745 3d7a76d4cca6bd3d8a8d4561722e6025 44949e8716726f928eb111bb899c506e
+[...]
+        364383123732 AES128 operations done in 1051.07s
+        2ns per AES128 operation
+        346.68 million keys per second
+```
+
+**Average time to Brute Keys:**
+- 4 bytes (32 bits) takes about 6.2 seconds
+- 5 bytes (40 bits) takes about 26.4 mins.
+- 6 bytes (48 bits) takes about 112.8 Hours.
 
 ### Thanks
 
