@@ -15,7 +15,7 @@ make
 #Usage 2: ./aes-brute-force-fast <key_mask> <key_in> <plain> <cipher> restrict <sorted list of bytes> [n_threads]
 ```
 
-## Proformance
+## Preformance
 
 ### Running on AWS x84-64 (c5ad.8xlarge)
 
