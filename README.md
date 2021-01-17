@@ -68,9 +68,9 @@ Arguments do not need to have Underscores but does makes it more readable.
 ```
 
 **Average time to Brute Keys:**
-- 4 bytes (32 bits) takes about 5.1 seconds
-- 5 bytes (40 bits) takes about 21.5 mins.
-- 6 bytes (48 bits) takes about 92.6 hours.
+- 4 bytes (32 bits) takes about 4.1 seconds
+- 5 bytes (40 bits) takes about 17.5 mins.
+- 6 bytes (48 bits) takes about 74.7 hours.
 
 ### Running on AWS ARM64 (c6gd.8xlarge)
 
@@ -84,9 +84,9 @@ Arguments do not need to have Underscores but does makes it more readable.
 ```
 
 **Average time to Brute Keys:**
-- 4 bytes (32 bits) takes about 6.2 seconds
-- 5 bytes (40 bits) takes about 26.4 mins.
-- 6 bytes (48 bits) takes about 112.8 Hours.
+- 4 bytes (32 bits) takes about 5.1 seconds
+- 5 bytes (40 bits) takes about 21.8 mins.
+- 6 bytes (48 bits) takes about 93.2 Hours.
 
 ### Thanks
 
